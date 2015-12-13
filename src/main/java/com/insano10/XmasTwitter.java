@@ -7,29 +7,32 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
-import twitter4j.Status;
 import twitter4j.Twitter;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static com.insano10.Location.*;
 
 public class XmasTwitter
 {
+    private static final String PROPERTY_FILE_PATH = "xmas-twitter.properties";
+
     private static final int BATCH_SIZE = 10;
     private static final long FREQUENCY = 10L;
     private static final String QUERY_STRING = "christmas";
 
-    public static void main(String[] args)
+    public static void main(String[] args) throws IOException
     {
-        final String consumerKey = getSystemProperty("consumerKey");
-        final String consumerSecret = getSystemProperty("consumerSecret");
+        final Properties properties = getProperties(PROPERTY_FILE_PATH);
 
-        final Twitter twitterClient = TwitterClientProvider.getTwitterClient(consumerKey, consumerSecret);
+        final Twitter twitterClient = TwitterClientProvider.getTwitterClient(properties.getProperty("consumerKey"), properties.getProperty("consumerSecret"));
         final HttpClient httpClient = HttpClientBuilder.create().build();
-        final TweetBatchCallback callback = getTweetBatchCallback(httpClient, "notTheId", "notTheToken");
+        final TweetBatchCallback callback = getTweetBatchCallback(httpClient, properties.getProperty("deviceId"), properties.getProperty("accessToken"));
 
         createAndStartTweetRetriever(twitterClient, callback, NORTH_LONDON);
         createAndStartTweetRetriever(twitterClient, callback, SOUTH_LONDON);
@@ -54,16 +57,11 @@ public class XmasTwitter
         tweetRetriever.start();
     }
 
-    private static String getSystemProperty(final String propertyKey)
+    private static Properties getProperties(final String propertyFilePath) throws IOException
     {
-        final String propertyValue = System.getProperty(propertyKey);
-
-        if (propertyValue == null)
-        {
-            throw new RuntimeException(String.format("You must pass in %s to the application in the form of VM arg -D%s=XXX", propertyKey, propertyKey));
-        }
-
-        return propertyValue;
+        final Properties properties = new Properties();
+        properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(propertyFilePath));
+        return properties;
     }
 
     private static TweetBatchCallback getTweetBatchCallback(final HttpClient httpClient, final String deviceId, final String accessToken)

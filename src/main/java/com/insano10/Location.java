@@ -13,7 +13,7 @@ public enum Location
     private final GeoLocation geoLocation;
     private final double radiusKm;
 
-    private Location(final GeoLocation geoLocation, final double radiusKm)
+    Location(final GeoLocation geoLocation, final double radiusKm)
     {
         this.geoLocation = geoLocation;
         this.radiusKm = radiusKm;

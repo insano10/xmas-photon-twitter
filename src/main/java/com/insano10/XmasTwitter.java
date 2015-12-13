@@ -1,8 +1,18 @@
 package com.insano10;
 
 import com.insano10.BatchingTweetRetriever.TweetBatchCallback;
-import twitter4j.GeoLocation;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import twitter4j.Status;
 import twitter4j.Twitter;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.insano10.Location.*;
 
@@ -18,8 +28,8 @@ public class XmasTwitter
         final String consumerSecret = getSystemProperty("consumerSecret");
 
         final Twitter twitterClient = TwitterClientProvider.getTwitterClient(consumerKey, consumerSecret);
-        final TweetBatchCallback callback = (loc, tweets) ->
-                tweets.stream().forEach(t -> System.out.println(String.format("[%s] - (%s) %d: %s", loc.name(), t.getCreatedAt(), t.getId(), t.getText())));
+        final HttpClient httpClient = HttpClientBuilder.create().build();
+        final TweetBatchCallback callback = getTweetBatchCallback(httpClient, "notTheId", "notTheToken");
 
         createAndStartTweetRetriever(twitterClient, callback, NORTH_LONDON);
         createAndStartTweetRetriever(twitterClient, callback, SOUTH_LONDON);
@@ -54,5 +64,31 @@ public class XmasTwitter
         }
 
         return propertyValue;
+    }
+
+    private static TweetBatchCallback getTweetBatchCallback(final HttpClient httpClient, final String deviceId, final String accessToken)
+    {
+        return (location, tweets) -> {
+
+            tweets.stream().forEach(t ->
+            {
+                System.out.println(String.format("[%s] - (%s) %d: %s", location.name(), t.getCreatedAt(), t.getId(), t.getText()));
+                try
+                {
+                    final HttpPost postTweets = new HttpPost("https://api.particle.io/v1/devices/" + deviceId + "/tweet");
+
+                    List<NameValuePair> urlParameters = new ArrayList<>();
+                    urlParameters.add(new BasicNameValuePair("access_token", accessToken));
+                    urlParameters.add(new BasicNameValuePair("args", t.getText()));
+                    postTweets.setEntity(new UrlEncodedFormEntity(urlParameters));
+
+                    httpClient.execute(postTweets);
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException("Failed to send tweets to Photon", e);
+                }
+            });
+        };
     }
 }

@@ -1,16 +1,18 @@
 package com.insano10;
 
 import com.insano10.BatchingTweetRetriever.TweetBatchCallback;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 import twitter4j.Twitter;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,11 +22,12 @@ import static com.insano10.Location.*;
 
 public class XmasTwitter
 {
+    private static final Logger LOGGER = Logger.getLogger(XmasTwitter.class);
     private static final String PROPERTY_FILE_PATH = "xmas-twitter.properties";
 
     private static final int BATCH_SIZE = 10;
     private static final long FREQUENCY = 10L;
-    private static final String QUERY_STRING = "christmas";
+    private static final String QUERY_STRING = "christmas OR xmas OR \"joyeux noel\" OR weihnachten OR navidad OR \"boze narodzenie\"";
 
     public static void main(String[] args) throws IOException
     {
@@ -76,11 +79,17 @@ public class XmasTwitter
                     final HttpPost postTweets = new HttpPost("https://api.particle.io/v1/devices/" + deviceId + "/tweet");
 
                     List<NameValuePair> urlParameters = new ArrayList<>();
+                    urlParameters.add(new BasicNameValuePair("args", location.name()));
                     urlParameters.add(new BasicNameValuePair("access_token", accessToken));
-                    urlParameters.add(new BasicNameValuePair("args", t.getText()));
                     postTweets.setEntity(new UrlEncodedFormEntity(urlParameters));
 
-                    httpClient.execute(postTweets);
+                    HttpResponse response = httpClient.execute(postTweets);
+                    EntityUtils.consumeQuietly(response.getEntity());
+
+                    if(response.getStatusLine().getStatusCode() != HttpStatus.SC_OK)
+                    {
+                        LOGGER.error("Failed to post tweet: " + response.getStatusLine());
+                    }
                 }
                 catch (IOException e)
                 {

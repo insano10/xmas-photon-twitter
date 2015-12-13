@@ -25,8 +25,8 @@ public class XmasTwitter
     private static final Logger LOGGER = Logger.getLogger(XmasTwitter.class);
     private static final String PROPERTY_FILE_PATH = "xmas-twitter.properties";
 
-    private static final int BATCH_SIZE = 10;
-    private static final long FREQUENCY = 10L;
+    private static final int BATCH_SIZE = 50;
+    private static final long FREQUENCY = 60L;
     private static final String QUERY_STRING = "christmas OR xmas OR \"joyeux noel\" OR weihnachten OR navidad OR \"boze narodzenie\"";
 
     public static void main(String[] args) throws IOException
